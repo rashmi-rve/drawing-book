@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Paint & Page — A Coloring Book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FFFBF2;
+    --paper-shadow: #F2ECD9;
+    --ink: #3A3530;
+    --coral: #E8533E;
+    --marigold: #F4A93B;
+    --leaf: #5B8C5A;
+    --sky: #3E7CB1;
+    --plum: #8B5A8C;
+    --blank: #FFFFFF;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--paper-shadow);
+    font-family: 'Nunito', sans-serif;
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    padding: 1.5em 1em 3em;
+  }
+
+  .book {
+    width: 100%;
+    max-width: 620px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 0.9em;
+  }
+
+  .eyebrow {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--coral);
+    font-weight: 600;
+  }
+
+  h1 {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin: 0.1em 0 0.05em;
+  }
+
+  .subhead {
+    font-size: 0.88rem;
+    color: #847C6E;
+    margin: 0;
+  }
+
+  /* the page / canvas card */
+  .page-card {
+    background: var(--paper);
+    border-radius: 18px;
+    box-shadow: 0 2px 0 rgba(58,53,48,0.06), 0 14px 28px -10px rgba(58,53,48,0.18);
+    padding: 1.4em 1.4em 1em;
+    margin-top: 1.2em;
+    position: relative;
+  }
+
+  .page-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.6em;
+  }
+
+  .page-title {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 1.15rem;
+  }
+
+  .page-number {
+    font-size: 0.78rem;
+    color: #A39A89;
+    font-weight: 700;
+    font-family: 'Fredoka', sans-serif;
+  }
+
+  .canvas-wrap {
+    background: var(--blank);
+    border-radius: 12px;
+    border: 1.5px dashed #E3DCC8;
+    aspect-ratio: 4 / 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  .canvas-wrap svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .canvas-wrap path,
+  .canvas-wrap circle,
+  .canvas-wrap ellipse {
+    cursor: pointer;
+    transition: fill 0.18s ease;
+  }
+
+  .canvas-wrap .outline {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  /* paint tray */
+  .tray {
+    display: flex;
+    gap: 0.55em;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 1em 0 0.3em;
+    padding: 0.7em 0.5em;
+    background: var(--paper-shadow);
+    border-radius: 14px;
+  }
+
+  .swatch {
+    width: 34px;
+    height: 34px;
+    border-radius: 50% 50% 50% 45%;
+    border: 2px solid rgba(58,53,48,0.12);
+    cursor: pointer;
+    position: relative;
+    transform: rotate(-6deg);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    padding: 0;
+  }
+
+  .swatch:hover { transform: rotate(-6deg) scale(1.08); }
+
+  .swatch.selected {
+    box-shadow: 0 0 0 2.5px var(--paper), 0 0 0 4.5px var(--ink);
+    transform: rotate(0deg) scale(1.1);
+  }
+
+  .swatch:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
+
+  .swatch.eraser {
+    background: var(--blank);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+  }
+
+  /* nav controls */
+  .nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.1em;
+    gap: 0.7em;
+  }
+
+  .nav-btn {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 0.88rem;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 999px;
+    padding: 0.55em 1.2em;
+    cursor: pointer;
+    transition: background 0.15s ease, opacity 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+  }
+
+  .nav-btn:hover { background: var(--coral); }
+  .nav-btn:disabled { opacity: 0.32; cursor: not-allowed; background: var(--ink); }
+  .nav-btn:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
+
+  .dots {
+    display: flex;
+    gap: 0.4em;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #E3DCC8;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+
+  .dot.active { background: var(--coral); transform: scale(1.3); }
+  .dot:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
+
+  .clear-btn {
+    background: none;
+    border: none;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.78rem;
+    color: #A39A89;
+    text-decoration: underline;
+    text-decoration-color: #E3DCC8;
+    cursor: pointer;
+    display: block;
+    margin: 0.8em auto 0;
+  }
+
+  .clear-btn:hover { color: var(--coral); text-decoration-color: var(--coral); }
+
+  @media (max-width: 420px) {
+    h1 { font-size: 1.5rem; }
+    .swatch { width: 30px; height: 30px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="book">
+  <header>
+    <div class="eyebrow">Paint &amp; Page</div>
+    <h1>A Little Coloring Book</h1>
+    <p class="subhead">Tap a color, then tap a shape to fill it in</p>
+  </header>
+
+  <div class="page-card">
+    <div class="page-meta">
+      <span class="page-title" id="page-title">Umbrella</span>
+      <span class="page-number" id="page-number">Page 1 of 5</span>
+    </div>
+
+    <div class="canvas-wrap" id="canvas-wrap">
+      <!-- SVG pages injected here -->
+    </div>
+
+    <div class="tray" id="tray" role="group" aria-label="Color palette"></div>
+
+    <button class="clear-btn" id="clear-btn" type="button">Clear this page</button>
+
+    <div class="nav-row">
+      <button class="nav-btn" id="prev-btn" type="button">&larr; Back</button>
+      <div class="dots" id="dots" role="tablist" aria-label="Pages"></div>
+      <button class="nav-btn" id="next-btn" type="button">Next &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const colors = [
+    { name: 'Coral',    hex: '#E8533E' },
+    { name: 'Marigold', hex: '#F4A93B' },
+    { name: 'Leaf',     hex: '#5B8C5A' },
+    { name: 'Sky',      hex: '#3E7CB1' },
+    { name: 'Plum',     hex: '#8B5A8C' },
+    { name: 'Sunshine', hex: '#F6D04D' },
+    { name: 'Blush',    hex: '#F0A6A6' },
+    { name: 'Ink',      hex: '#3A3530' }
+  ];
+
+  // Each page: title + svg markup. Fillable regions have class="fill" and a unique id.
+  // Outline-only strokes have class="outline" (not fillable, drawn on top).
+  const pages = [
+    {
+      title: 'Umbrella',
+      svg: `
+        <svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg">
+          <path class="fill" id="canopy-1" d="M150 60 C 90 60, 45 105, 40 150 L 150 150 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="4"/>
+          <path class="fill" id="canopy-2" d="M150 60 C 210 60, 255 105, 260 150 L 150 150 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="4"/>
+          <path class="fill" id="canopy-3" d="M150 60 L 150 150 L 40 150 C 40 150, 45 165, 60 165 C 75 165, 80 150, 95 150 C 110 150, 115 165, 130 165 C 140 165, 145 158, 150 150 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="4" opacity="0"/>
+          <path class="outline" d="M40 150 C 45 165, 75 165, 80 150 C 85 165, 115 165, 120 150 C 125 165, 155 165, 150 150" fill="none" stroke="#3A3530" stroke-width="4" stroke-linecap="round"/>
+          <path class="outline" d="M150 150 C 145 165, 175 165, 180 150 C 185 165, 215 165, 220 150 C 225 165, 255 165, 260 150" fill="none" stroke="#3A3530" stroke-width="4" stroke-linecap="round"/>
+          <line class="outline" x1="150" y1="60" x2="150" y2="280" stroke="#3A3530" stroke-width="5" stroke-linecap="round"/>
+          <path class="outline" d="M150 280 C 150 300, 170 300, 170 280" fill="none" stroke="#3A3530" stroke-width="5" stroke-linecap="round"/>
+          <circle class="fill" id="tip" cx="150" cy="56" r="8" fill="#FFFFFF" stroke="#3A3530" stroke-width="4"/>
+          <path class="outline" d="M70 110 C 90 95, 120 90, 150 90 C 180 90, 210 95, 230 110" fill="none" stroke="#3A3530" stroke-width="2.5" stroke-dasharray="3 6" stroke-linecap="round" opacity="0.5"/>
+        </svg>
+      `
+    },
+    {
+      title: 'Hut',
+      svg: `
+        <svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg">
+          <path class="fill" id="roof" d="M45 175 L150 95 L255 175 L235 175 L150 120 L65 175 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="4" stroke-linejoin="round"/>
+          <path class="outline" d="M45 175 C 45 165, 55 165, 65 175 M65 175 C 65 165, 75 165, 85 175 M85 175 C 85 165, 95 165, 105 175 M105 175 C 105 165, 115 165, 125 175 M125 175 C 125 165, 135 165, 145 175 M145 175 C 145 165, 155 165, 165 175 M165 175 C 165 165, 175 165, 185 175 M185 175 C 185 165, 195 165, 205 175 M205 175 C 205 165, 215 165, 225 175 M225 175 C 225 165, 235 165, 245 175 M245 175 C 245 165, 255 165, 255 175" fill="none" stroke="#3A3530" stroke-width="2" opacity="0.35"/>
+          <rect class="fill" id="walls" x="70" y="175" width="160" height="100" fill="#FFFFFF" stroke="#3A3530" stroke-width="4"/>
+          <rect class="fill" id="door" x="135" y="205" width="40" height="70" fill="#FFFFFF" stroke="#3A3530" stroke-width="4"/>
+          <line class="outline" x1="155" y1="205" x2="155" y2="275" stroke="#3A3530" stroke-width="2" opacity="0.4"/>
+          <rect class="fill" id="window-left" x="85" y="200" width="30" height="30" rx="3" fill="#FFFFFF" stroke="#3A3530" stroke-width="3.5"/>
+          <line class="outline" x1="100" y1="200" x2="100" y2="230" stroke="#3A3530" stroke-width="2"/>
+          <line class="outline" x1="85" y1="215" x2="115" y2="215" stroke="#3A3530" stroke-width="2"/>
+          <rect class="fill" id="window-right" x="185" y="200" width="30" height="30" rx="3" fill="#FFFFFF" stroke="#3A3530" stroke-width="3.5"/>
+          <line class="outline" x1="200" y1="200" x2="200" y2="230" stroke="#3A3530" stroke-width="2"/>
+          <line class="outline" x1="185" y1="215" x2="215" y2="215" stroke="#3A3530" stroke-width="2"/>
+          <path class="fill" id="ground" d="M20 275 L280 275 L290 290 L10 290 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="4" stroke-linejoin="round"/>
+          <path class="outline" d="M30 290 C 35 280, 30 270, 25 268 M250 290 C 255 280, 250 270, 245 268" fill="none" stroke="#3A3530" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+        </svg>
+      `
+    },
+    {
+      title: 'Mango',
+      svg: `
+        <svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg">
+          <path class="outline" d="M150 70 C 145 55, 130 50, 118 58" fill="none" stroke="#3A3530" stroke-width="4" stroke-linecap="round"/>
+          <path class="fill" id="leaf" d="M118 58 C 95 60, 75 80, 78 100 C 100 95, 118 78, 118 58 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="3.5" stroke-linejoin="round"/>
+          <line class="outline" x1="92" y1="70" x2="110" y2="65" stroke="#3A3530" stroke-width="1.8" opacity="0.45"/>
+          <path class="fill" id="mango-body" d="M150 75 C 95 90, 70 150, 90 215 C 105 265, 145 295, 170 290 C 215 280, 235 215, 220 155 C 208 105, 175 78, 150 75 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="4.5" stroke-linejoin="round"/>
+          <path class="outline" d="M150 90 C 130 130, 122 190, 140 240 C 150 265, 165 280, 172 282" fill="none" stroke="#3A3530" stroke-width="2" opacity="0.4" stroke-linecap="round"/>
+        </svg>
+      `
+    },
+    {
+      title: 'Lotus',
+      svg: `
+        <svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg">
+          <path class="fill" id="petal-back-l" d="M150 230 C 100 220, 65 180, 70 135 C 110 145, 140 180, 150 230 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="3.5" stroke-linejoin="round"/>
+          <path class="fill" id="petal-back-r" d="M150 230 C 200 220, 235 180, 230 135 C 190 145, 160 180, 150 230 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="3.5" stroke-linejoin="round"/>
+          <path class="fill" id="petal-mid-l" d="M150 235 C 110 220, 90 175, 100 130 C 132 148, 148 185, 150 235 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="3.5" stroke-linejoin="round"/>
+          <path class="fill" id="petal-mid-r" d="M150 235 C 190 220, 210 175, 200 130 C 168 148, 152 185, 150 235 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="3.5" stroke-linejoin="round"/>
+          <path class="fill" id="petal-center" d="M150 240 C 132 200, 130 150, 150 105 C 170 150, 168 200, 150 240 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="4" stroke-linejoin="round"/>
+          <path class="fill" id="base" d="M95 230 C 95 250, 120 262, 150 262 C 180 262, 205 250, 205 230 C 180 245, 120 245, 95 230 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="3.5" stroke-linejoin="round"/>
+          <path class="outline" d="M70 270 C 90 290, 130 300, 150 300 C 170 300, 210 290, 230 270" fill="none" stroke="#3A3530" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+          <path class="fill" id="leaf-l" d="M55 285 C 35 280, 25 295, 30 312 C 50 308, 62 295, 55 285 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="3" stroke-linejoin="round"/>
+          <path class="fill" id="leaf-r" d="M245 285 C 265 280, 275 295, 270 312 C 250 308, 238 295, 245 285 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="3" stroke-linejoin="round"/>
+        </svg>
+      `
+    },
+    {
+      title: 'Butterfly',
+      svg: `
+        <svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg">
+          <line class="outline" x1="150" y1="90" x2="150" y2="270" stroke="#3A3530" stroke-width="5" stroke-linecap="round"/>
+          <path class="outline" d="M150 95 C 140 80, 128 75, 120 80 M150 95 C 160 80, 172 75, 180 80" fill="none" stroke="#3A3530" stroke-width="3" stroke-linecap="round"/>
+          <circle class="outline" cx="150" cy="92" r="6" fill="#3A3530"/>
+          <path class="fill" id="wing-top-left" d="M148 120 C 110 70, 50 75, 35 120 C 25 155, 55 175, 95 165 C 120 158, 140 140, 148 120 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="4" stroke-linejoin="round"/>
+          <path class="fill" id="wing-top-right" d="M152 120 C 190 70, 250 75, 265 120 C 275 155, 245 175, 205 165 C 180 158, 160 140, 152 120 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="4" stroke-linejoin="round"/>
+          <path class="fill" id="wing-bottom-left" d="M148 150 C 120 165, 90 215, 105 250 C 118 278, 150 270, 152 235 C 153 205, 150 175, 148 150 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="4" stroke-linejoin="round"/>
+          <path class="fill" id="wing-bottom-right" d="M152 150 C 180 165, 210 215, 195 250 C 182 278, 150 270, 148 235 C 147 205, 150 175, 152 150 Z" fill="#FFFFFF" stroke="#3A3530" stroke-width="4" stroke-linejoin="round"/>
+          <circle class="fill" id="spot-tl" cx="80" cy="115" r="11" fill="#FFFFFF" stroke="#3A3530" stroke-width="2.5"/>
+          <circle class="fill" id="spot-tr" cx="220" cy="115" r="11" fill="#FFFFFF" stroke="#3A3530" stroke-width="2.5"/>
+          <circle class="fill" id="spot-bl" cx="128" cy="210" r="8" fill="#FFFFFF" stroke="#3A3530" stroke-width="2.5"/>
+          <circle class="fill" id="spot-br" cx="172" cy="210" r="8" fill="#FFFFFF" stroke="#3A3530" stroke-width="2.5"/>
+        </svg>
+      `
+    }
+  ];
+
+  let currentPage = 0;
+  let selectedColor = colors[0].hex;
+  const fillState = pages.map(() => ({}));
+
+  const canvasWrap = document.getElementById('canvas-wrap');
+  const pageTitle = document.getElementById('page-title');
+  const pageNumber = document.getElementById('page-number');
+  const tray = document.getElementById('tray');
+  const dotsWrap = document.getElementById('dots');
+  const prevBtn = document.getElementById('prev-btn');
+  const nextBtn = document.getElementById('next-btn');
+  const clearBtn = document.getElementById('clear-btn');
+
+  function buildTray() {
+    tray.innerHTML = '';
+    colors.forEach((c, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'swatch' + (c.hex === selectedColor ? ' selected' : '');
+      btn.style.background = c.hex;
+      btn.type = 'button';
+      btn.setAttribute('aria-label', `Choose ${c.name}`);
+      btn.setAttribute('aria-pressed', c.hex === selectedColor ? 'true' : 'false');
+      btn.addEventListener('click', () => {
+        selectedColor = c.hex;
+        buildTray();
+      });
+      tray.appendChild(btn);
+    });
+
+    const eraser = document.createElement('button');
+    eraser.className = 'swatch eraser';
+    eraser.type = 'button';
+    eraser.textContent = '✕';
+    eraser.setAttribute('aria-label', 'Eraser — reset a shape to white');
+    eraser.addEventListener('click', () => {
+      selectedColor = '#FFFFFF';
+      buildTray();
+    });
+    tray.appendChild(eraser);
+  }
+
+  function buildDots() {
+    dotsWrap.innerHTML = '';
+    pages.forEach((p, i) => {
+      const dot = document.createElement('button');
+      dot.className = 'dot' + (i === currentPage ? ' active' : '');
+      dot.type = 'button';
+      dot.setAttribute('aria-label', `Go to page ${i + 1}: ${p.title}`);
+      dot.addEventListener('click', () => goToPage(i));
+      dotsWrap.appendChild(dot);
+    });
+  }
+
+  function renderCanvas() {
+    canvasWrap.innerHTML = pages[currentPage].svg;
+    const svg = canvasWrap.querySelector('svg');
+    const fillEls = svg.querySelectorAll('.fill');
+    const state = fillState[currentPage];
+
+    fillEls.forEach(el => {
+      const id = el.id;
+      if (state[id]) {
+        el.setAttribute('fill', state[id]);
+      }
+      el.addEventListener('click', () => {
+        el.setAttribute('fill', selectedColor);
+        state[id] = selectedColor;
+      });
+    });
+  }
+
+  function updateMeta() {
+    pageTitle.textContent = pages[currentPage].title;
+    pageNumber.textContent = `Page ${currentPage + 1} of ${pages.length}`;
+    prevBtn.disabled = currentPage === 0;
+    nextBtn.textContent = currentPage === pages.length - 1 ? 'Start over ↺' : 'Next →';
+  }
+
+  function goToPage(i) {
+    currentPage = i;
+    renderCanvas();
+    updateMeta();
+    buildDots();
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (currentPage > 0) goToPage(currentPage - 1);
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentPage === pages.length - 1) {
+      goToPage(0);
+    } else {
+      goToPage(currentPage + 1);
+    }
+  });
+
+  clearBtn.addEventListener('click', () => {
+    fillState[currentPage] = {};
+    renderCanvas();
+  });
+
+  buildTray();
+  buildDots();
+  renderCanvas();
+  updateMeta();
+</script>
+
+</body>
+</html>
