@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Paint & Page — A Coloring Book App
 
 A single-tier coloring book web app with 5 hand-drawn pages: **umbrella, hut, mango, lotus, and butterfly**. Tap a color from the paint tray, then tap any part of the sketch to fill it in.
@@ -56,3 +57,5 @@ coloring-book-app/
 ## Author
 
 Rashmi
+=======
+
